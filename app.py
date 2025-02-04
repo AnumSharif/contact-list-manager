@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from models import db, Contact
 from forms import ContactForm
 import os
+import re  
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key')
@@ -29,12 +30,29 @@ def list_contacts():
 def add_contact():
     form = ContactForm()
     if form.validate_on_submit():
-        contact = Contact(
-            name=form.name.data,
-            phone=form.phone.data,
-            email=form.email.data,
-            type=form.type.data
-        )
+        name = form.name.data
+        phone = form.phone.data
+        email = form.email.data
+
+        # Regex Patterns
+        name_pattern = r'^[A-Za-z\s]+$'  # Only letters and spaces allowed
+        phone_pattern = r'^\d{10,15}$'   # Only digits, 10-15 characters
+        email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'  # Standard email format
+        
+        # Validate Inputs
+        if not re.match(name_pattern, name):
+            flash('Invalid name! Only letters and spaces are allowed.', 'danger')
+            return render_template('add_contact.html', form=form)
+
+        if not re.match(phone_pattern, phone):
+            flash('Invalid phone number! Only digits (10-15) are allowed.', 'danger')
+            return render_template('add_contact.html', form=form)
+
+        if not re.match(email_pattern, email):
+            flash('Invalid email format!', 'danger')
+            return render_template('add_contact.html', form=form)
+
+        contact = Contact(name=name, phone=phone, email=email, type=form.type.data)
         try:
             db.session.add(contact)
             db.session.commit()
